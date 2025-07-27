@@ -1,12 +1,29 @@
 import { useEffect, useState } from 'react'
+import './App.css'
 import axios from 'axios'
 import utils from './services/utils'
+
+const Notification = ({message, isError}) => {
+  if (message === null) {
+    return null
+  }
+
+  return (
+    <div className={isError ? 'error' : 'confirmation'}>
+      {message}
+    </div>
+  )
+}
 
 const App = () => {
   const [persons, setPersons] = useState([]) 
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusMessage, setStatusMessage] = useState({
+    message: '',
+    errorStatus: null
+  })
 
   useEffect(() => {
     utils.getAll().then(res => setPersons(res))
@@ -24,10 +41,10 @@ const App = () => {
       }
       const newPerson = persons.find(person => person.name.toLowerCase() === newName.toLowerCase())
       newPerson.number = newNumber
-      //console.log(newPerson)
       utils.updatePerson(newPerson).then(res => {
-        console.log(res)
-        setPersons(persons.map(person => person.id === res.id ? res : person))})
+        setPersons(persons.map(person => person.id === res.id ? res : person))
+        displayMessage(`${res.name} phone number was updated`, false)})
+        .catch(x => displayMessage(`${newPerson.name} is already deleted`, true))
       setNewName('')
       setNewNumber('')
       return
@@ -36,10 +53,12 @@ const App = () => {
     const newPerson = {
       name: newName,
       number: newNumber,
-      //id: persons.length + 1
     }
 
-    utils.create(newPerson).then(res => setPersons(persons.concat(res)))
+    utils.create(newPerson).then(res => {
+      setPersons(persons.concat(res))
+      displayMessage(`${res.name} was added`, false)
+    })
     setNewName('')
     setNewNumber('')
   }
@@ -53,9 +72,15 @@ const App = () => {
     } 
   }
 
+  const displayMessage = (message, status) => {
+    setStatusMessage({message: message, errorStatus: status})
+    setTimeout(() => setStatusMessage({message:null, errorStatus:null}) ,3000)
+  }
+
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={statusMessage.message} isError={statusMessage.errorStatus} />
       <div>
         filter shown with <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
